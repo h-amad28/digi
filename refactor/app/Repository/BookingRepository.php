@@ -130,8 +130,16 @@ class BookingRepository extends BaseRepository
 
         $immediatetime = 5;
         $consumer_type = $user->userMeta->consumer_type;
+        
+        if (isset($data['duration']) && $data['duration'] == '') {
+            $response['status'] = 'fail';
+            $response['message'] = "Du måste fylla in alla fält";
+            $response['field_name'] = "duration";
+            return $response;
+        }
+
         if ($user->user_type == env('CUSTOMER_ROLE_ID')) {
-            $cuser = $user;
+        $cuser = $user;
 
             if (!isset($data['from_language_id'])) {
                 $response['status'] = 'fail';
@@ -140,38 +148,48 @@ class BookingRepository extends BaseRepository
                 return $response;
             }
             if ($data['immediate'] == 'no') {
-                if (isset($data['due_date']) && $data['due_date'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "due_date";
-                    return $response;
+                
+                $errors = ['due_date'=> "Du måste fylla in alla fält", 'due_time' => "Du måste fylla in alla fält", 'customer_phone_type' => 'Du måste göra ett val här'];
+                foreach ($errors as $key => $value) {
+                    if( empty($data[$key]) ){
+                        return $response['status' => 'fail', 'message' => $value, 'field_name' => $key];
+                        break;// Safe side
+                    }
                 }
-                if (isset($data['due_time']) && $data['due_time'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "due_time";
-                    return $response;
-                }
-                if (!isset($data['customer_phone_type']) && !isset($data['customer_physical_type'])) {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste göra ett val här";
-                    $response['field_name'] = "customer_phone_type";
-                    return $response;
-                }
-                if (isset($data['duration']) && $data['duration'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "duration";
-                    return $response;
-                }
-            } else {
-                if (isset($data['duration']) && $data['duration'] == '') {
-                    $response['status'] = 'fail';
-                    $response['message'] = "Du måste fylla in alla fält";
-                    $response['field_name'] = "duration";
-                    return $response;
-                }
+                // if (isset($data['due_date']) && $data['due_date'] == '') {
+                //     // $response['status'] = 'fail';
+                //     $response['message'] = "Du måste fylla in alla fält";
+                //     $response['field_name'] = "due_date";
+                //     return $response;
+                // }
+                // if (isset($data['due_time']) && $data['due_time'] == '') {
+                //     // $response['status'] = 'fail';
+                //     $response['message'] = "Du måste fylla in alla fält";
+                //     $response['field_name'] = "due_time";
+                //     return $response;
+                // }
+                // if (!isset($data['customer_phone_type']) && !isset($data['customer_physical_type'])) {
+                //     $response['status'] = 'fail';
+                //     $response['message'] = "Du måste göra ett val här";
+                //     $response['field_name'] = "customer_phone_type";
+                //     return $response;
+                // }
+                // if (isset($data['duration']) && $data['duration'] == '') {
+                //     $response['status'] = 'fail';
+                //     $response['message'] = "Du måste fylla in alla fält";
+                //     $response['field_name'] = "duration";
+                //     return $response;
+                // }
             }
+        } 
+        // else {
+        //     if (isset($data['duration']) && $data['duration'] == '') {
+        //         $response['status'] = 'fail';
+        //         $response['message'] = "Du måste fylla in alla fält";
+        //         $response['field_name'] = "duration";
+        //         return $response;
+        //     }
+        // }
             if (isset($data['customer_phone_type'])) {
                 $data['customer_phone_type'] = 'yes';
             } else {
@@ -204,21 +222,30 @@ class BookingRepository extends BaseRepository
                     return $response;
                 }
             }
-            if (in_array('male', $data['job_for'])) {
-                $data['gender'] = 'male';
-            } else if (in_array('female', $data['job_for'])) {
-                $data['gender'] = 'female';
+            $genderCertified = ['gender' => ['male', 'female'], 'certified' => ['normail', 'certified', 'law', 'health']]
+            foreach ($genderCertified as $key => $value) {
+                foreach ($values as $val) {
+                    if (in_array($val, $data['job_for'])) {
+                        $data[$key] = $val;
+                        break;
+                    }
+                }
             }
-            if (in_array('normal', $data['job_for'])) {
-                $data['certified'] = 'normal';
-            }
-            else if (in_array('certified', $data['job_for'])) {
-                $data['certified'] = 'yes';
-            } else if (in_array('certified_in_law', $data['job_for'])) {
-                $data['certified'] = 'law';
-            } else if (in_array('certified_in_helth', $data['job_for'])) {
-                $data['certified'] = 'health';
-            }
+            // if (in_array('male', $data['job_for'])) {
+            //     $data['gender'] = 'male';
+            // } else if (in_array('female', $data['job_for'])) {
+            //     $data['gender'] = 'female';
+            // }
+            // if (in_array('normal', $data['job_for'])) {
+            //     $data['certified'] = 'normal';
+            // }
+            // else if (in_array('certified', $data['job_for'])) {
+            //     $data['certified'] = 'yes';
+            // } else if (in_array('certified_in_law', $data['job_for'])) {
+            //     $data['certified'] = 'law';
+            // } else if (in_array('certified_in_helth', $data['job_for'])) {
+            //     $data['certified'] = 'health';
+            // }
             if (in_array('normal', $data['job_for']) && in_array('certified', $data['job_for'])) {
                 $data['certified'] = 'both';
             }
@@ -230,6 +257,7 @@ class BookingRepository extends BaseRepository
             {
                 $data['certified'] = 'n_health';
             }
+
             if ($consumer_type == 'rwsconsumer')
                 $data['job_type'] = 'rws';
             else if ($consumer_type == 'ngo')
@@ -289,7 +317,8 @@ class BookingRepository extends BaseRepository
         $job = Job::findOrFail(@$data['user_email_job_id']);
         $job->user_email = @$data['user_email'];
         $job->reference = isset($data['reference']) ? $data['reference'] : '';
-        $user = $job->user()->get()->first();
+        // $user = $job->user()->get()->first();
+        $user = $job->user()->first();
         if (isset($data['address'])) {
             $job->address = ($data['address'] != '') ? $data['address'] : $user->userMeta->address;
             $job->instructions = ($data['instructions'] != '') ? $data['instructions'] : $user->userMeta->instructions;
@@ -1697,26 +1726,51 @@ class BookingRepository extends BaseRepository
                 if (isset($requestdata['count']) && $requestdata['count'] != 'false') return ['count' => $allJobs->count()];
             }
 
-            if (isset($requestdata['id']) && $requestdata['id'] != '') {
-                if (is_array($requestdata['id']))
-                    $allJobs->whereIn('id', $requestdata['id']);
-                else
-                    $allJobs->where('id', $requestdata['id']);
-                $requestdata = array_only($requestdata, ['id']);
+            $filters = [
+                        'id' => 'id', // as an array
+                        'lang' => 'from_language_id', 'status' => 'status', 'job_type' => 'job_type',
+                        'physical' => 'customer_physical_type'
+                    ];
+
+            foreach ($filters as $key => $arrayCol) {
+
+                if( $value == "id"){
+                    $allJobs->whereIn( $arrayCol , (array) $requestdata[ $key ] );
+                    break;
+                }else if( isset($requestdata[ $key ]) ){
+                    $allJobs->whereIn( $arrayCol , $requestdata[ $key ] );
+                }
+
             }
 
-            if (isset($requestdata['lang']) && $requestdata['lang'] != '') {
-                $allJobs->whereIn('from_language_id', $requestdata['lang']);
-            }
-            if (isset($requestdata['status']) && $requestdata['status'] != '') {
-                $allJobs->whereIn('status', $requestdata['status']);
-            }
+            //  array_only owerwrites the data
+            // if (isset($requestdata['id']) && $requestdata['id'] != '') {
+            //     if (is_array($requestdata['id']))
+            //         $allJobs->whereIn('id', $requestdata['id']);
+            //     else
+            //         $allJobs->where('id', $requestdata['id']);
+            //     $requestdata = array_only($requestdata, ['id']);// owerrites the data
+            // }
+
+            // if (isset($requestdata['lang']) && $requestdata['lang'] != '') {
+            //     $allJobs->whereIn('from_language_id', $requestdata['lang']);
+            // }
+            // if (isset($requestdata['status']) && $requestdata['status'] != '') {
+            //     $allJobs->whereIn('status', $requestdata['status']);
+            // }
             if (isset($requestdata['expired_at']) && $requestdata['expired_at'] != '') {
                 $allJobs->where('expired_at', '>=', $requestdata['expired_at']);
             }
             if (isset($requestdata['will_expire_at']) && $requestdata['will_expire_at'] != '') {
                 $allJobs->where('will_expire_at', '>=', $requestdata['will_expire_at']);
             }
+            
+            /*
+             * WE CAN ADD JOIN ON CONDITION BASES WITH THE USER TABLE
+             *  JOIN ON USER_ID
+
+             * AND USING THE WHERE FILTER ON EMAILS 
+             */
             if (isset($requestdata['customer_email']) && count($requestdata['customer_email']) && $requestdata['customer_email'] != '') {
                 $users = DB::table('users')->whereIn('email', $requestdata['customer_email'])->get();
                 if ($users) {
@@ -1730,6 +1784,7 @@ class BookingRepository extends BaseRepository
                     $allJobs->whereIn('id', $allJobIDs);
                 }
             }
+
             if (isset($requestdata['filter_timetype']) && $requestdata['filter_timetype'] == "created") {
                 if (isset($requestdata['from']) && $requestdata['from'] != "") {
                     $allJobs->where('created_at', '>=', $requestdata["from"]);
@@ -1751,20 +1806,20 @@ class BookingRepository extends BaseRepository
                 $allJobs->orderBy('due', 'desc');
             }
 
-            if (isset($requestdata['job_type']) && $requestdata['job_type'] != '') {
-                $allJobs->whereIn('job_type', $requestdata['job_type']);
-                /*$allJobs->where('jobs.job_type', '=', $requestdata['job_type']);*/
-            }
+            // if (isset($requestdata['job_type']) && $requestdata['job_type'] != '') {
+            //     $allJobs->whereIn('job_type', $requestdata['job_type']);
+            //     /*$allJobs->where('jobs.job_type', '=', $requestdata['job_type']);*/
+            // }
 
             if (isset($requestdata['physical'])) {
-                $allJobs->where('customer_physical_type', $requestdata['physical']);
+                $allJobs->where('customer_physical_type', ($requestdata['booking_type'] == 'physical') ? 'yes' : $requestdata['physical']);
                 $allJobs->where('ignore_physical', 0);
             }
 
             if (isset($requestdata['phone'])) {
                 $allJobs->where('customer_phone_type', $requestdata['phone']);
                 if(isset($requestdata['physical']))
-                $allJobs->where('ignore_physical_phone', 0);
+                    $allJobs->where('ignore_physical_phone', 0);
             }
 
             if (isset($requestdata['flagged'])) {
@@ -1792,10 +1847,10 @@ class BookingRepository extends BaseRepository
                 });
             }
 
-            if (isset($requestdata['booking_type'])) {
-                if ($requestdata['booking_type'] == 'physical')
-                    $allJobs->where('customer_physical_type', 'yes');
-                if ($requestdata['booking_type'] == 'phone')
+            if (isset($requestdata['booking_type']) && $requestdata['booking_type'] == 'phone') {
+                // if ($requestdata['booking_type'] == 'physical')
+                //     $allJobs->where('customer_physical_type', 'yes');
+                // if ($requestdata['booking_type'] == 'phone')
                     $allJobs->where('customer_phone_type', 'yes');
             }
             
